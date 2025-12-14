@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import App from './app/src/App';
+import App from './App';
 
 // Declare test and expect to fix TypeScript errors
 declare const test: any;
