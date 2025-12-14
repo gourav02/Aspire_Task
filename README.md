@@ -1,7 +1,3 @@
-# Aspire Banking Dashboard
-
-A responsive banking dashboard application built with React, TypeScript, and Tailwind CSS. This project focuses on high-fidelity design implementation and accessible, interactive UI components.
-
 ## Features
 
 - **Responsive Design**: Mobile-first approach that scales to a dual-column desktop layout with a sidebar.
@@ -18,7 +14,7 @@ A responsive banking dashboard application built with React, TypeScript, and Tai
 - **Framework**: React 18
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Primitives**: Radix UI (Headless UI components)
+- **UI Primitives**: shadcn UI
 - **Icons**: Lucide React
 - **Build/Run**: ESM (Browser-native modules via importmap) & `serve` for local development.
 
@@ -55,8 +51,7 @@ You can run this application using the standard Node.js CLI commands.
    ```
 3. Start the application:
    ```bash
-   npm run start
+   npm run dev
    ```
 4. The terminal will display the local URL (usually `http://localhost:3000`). Open this URL in your browser.
 
-*Note: This project uses an `importmap` in `index.html` to load React and other libraries directly from a CDN (esm.sh). The `npm run start` command simply serves the static files.*
