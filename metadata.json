@@ -1,0 +1,5 @@
+{
+  "name": "Aspire Banking App",
+  "description": "A responsive banking dashboard featuring card management, transaction history, and local storage persistence.",
+  "requestFramePermissions": []
+}
