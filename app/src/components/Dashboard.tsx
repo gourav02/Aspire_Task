@@ -4,14 +4,10 @@ import { CreditCard } from "./CreditCard";
 import { ActionMenu } from "./ActionMenu";
 import { NewCardModal } from "./NewCardModal";
 import { cn } from "../../../utils";
-
-// Shadcn UI Imports
-import { Button } from "./ui/button";
-import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { cardService } from "../services/api";
-import { AspireIcon } from "../utils/iconUtil";
 import { ContentSections } from "./ContentSections";
 import { Card, Transaction } from "../interfaces/common";
+import { DashboardHeader } from "./DashboardHeader";
 
 export const Dashboard: React.FC = () => {
   const [cards, setCards] = useState<Card[]>([]);
@@ -330,99 +326,18 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-primary-blue md:bg-white flex flex-col gap-8 md:p-[60px] md:overflow-y-auto no-scrollbar">
-      {/* 
-          MOBILE HEADER (Visible < md)
-      */}
-      <div className="md:hidden sticky top-0 bg-primary-blue px-6 pt-4 flex flex-col gap-7 pb-4">
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex justify-between">
-            <h2 className="font-md text-white">Account balance</h2>
+      {/* MOBILE HEADER */}
+      <DashboardHeader
+        variant="mobile"
+        onNewCard={() => setIsModalOpen(true)}
+      />
 
-            <div className="">
-              <AspireIcon />
-            </div>
-          </div>
-          <div className="flex justify-between w-full">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary-green px-3 py-1 rounded-[4px] text-xs font-bold text-white">
-                S$
-              </div>
-              <span className="text-2xl font-bold text-white">3,000</span>
-            </div>
+      {/* DESKTOP/TABLET HEADER */}
+      <DashboardHeader
+        variant="desktop"
+        onNewCard={() => setIsModalOpen(true)}
+      />
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-[#23CEFD] font-bold text-sm flex gap-2 justify-center items-center"
-            >
-              <Icons.Plus size={16} className="text-[#23CEFD]" />
-              <span>New card</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Shadcn Tabs - Customized for Mobile Header Look */}
-        <Tabs defaultValue="debit" className="w-full">
-          <TabsList className="bg-transparent p-0 gap-8 h-auto w-full justify-start">
-            <TabsTrigger
-              value="debit"
-              className="bg-transparent text-sm p-0 pb-2 text-white/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-[#23CEFD] rounded-none shadow-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-            >
-              My debit cards
-            </TabsTrigger>
-            <TabsTrigger
-              value="company"
-              className="bg-transparent p-0 pb-2 text-white/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-primary-green rounded-none shadow-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-            >
-              All company cards
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* 
-          DESKTOP/TABLET HEADER (Visible >= md)
-      */}
-      <div className="hidden md:relative md:flex flex-col p-0 text-black gap-9">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium opacity-80">
-              Available balance
-            </h2>
-            <div className="flex items-center gap-3">
-              <div className="bg-primary-green px-3 py-1 rounded-[4px] text-xs font-bold text-white">
-                S$
-              </div>
-              <span className="text-2xl font-bold">3,000</span>
-            </div>
-          </div>
-          <Button
-            variant="default"
-            onClick={() => setIsModalOpen(true)}
-            className="gap-2 shadow-md"
-          >
-            <Icons.Plus size={16} />
-            <span className="font-semibold">New card</span>
-          </Button>
-        </div>
-
-        {/* Shadcn Tabs - Desktop */}
-        <Tabs defaultValue="debit" className="w-full">
-          <TabsList className="bg-transparent p-0 gap-8 h-auto w-full justify-start rounded-none">
-            <TabsTrigger
-              value="debit"
-              className="bg-transparent p-0 pb-3 text-gray-400 data-[state=active]:text-black data-[state=active]:border-b-2 data-[state=active]:border-primary-green rounded-none shadow-none data-[state=active]:shadow-none data-[state=active]:bg-transparent font-bold"
-            >
-              My debit cards
-            </TabsTrigger>
-            <TabsTrigger
-              value="company"
-              className="bg-transparent p-0 pb-3 text-gray-400 data-[state=active]:text-black data-[state=active]:border-b-2 data-[state=active]:border-primary-green rounded-none shadow-none data-[state=active]:shadow-none data-[state=active]:bg-transparent font-bold"
-            >
-              All company cards
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
       {/* 
           MOBILE CONTENT (Visible < md)
           - Carousel with Peek (Next/Prev Preview)
@@ -452,7 +367,10 @@ export const Dashboard: React.FC = () => {
                 )}
                 onClick={() => scrollToCard(idx)}
               >
-                <CreditCard card={card} showDetails={revealedCardId === card.id} />
+                <CreditCard
+                  card={card}
+                  showDetails={revealedCardId === card.id}
+                />
               </div>
             );
           })}
@@ -468,11 +386,19 @@ export const Dashboard: React.FC = () => {
             )}
           >
             <button
-              onClick={() => setRevealedCardId(revealedCardId === currentCard?.id ? null : currentCard?.id ?? null)}
+              onClick={() =>
+                setRevealedCardId(
+                  revealedCardId === currentCard?.id
+                    ? null
+                    : currentCard?.id ?? null
+                )
+              }
               className="flex h-full items-center gap-2 bg-white text-primary-green px-2 pb-3 rounded-t-md text-xs font-medium"
             >
               <Icons.Eye size={16} />
-              {revealedCardId === currentCard?.id ? 'Hide card number' : 'Show card number'}
+              {revealedCardId === currentCard?.id
+                ? "Hide card number"
+                : "Show card number"}
             </button>
           </div>
         )}
@@ -580,16 +506,25 @@ export const Dashboard: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setRevealedCardId(revealedCardId === card.id ? null : card.id);
+                          setRevealedCardId(
+                            revealedCardId === card.id ? null : card.id
+                          );
                         }}
                         className="flex items-center gap-2 text-primary-green text-xs font-bold"
                       >
                         <Icons.Eye size={14} />
-                        <span>{revealedCardId === card.id ? 'Hide card number' : 'Show card number'}</span>
+                        <span>
+                          {revealedCardId === card.id
+                            ? "Hide card number"
+                            : "Show card number"}
+                        </span>
                       </button>
                     </div>
 
-                    <CreditCard card={card} showDetails={revealedCardId === card.id} />
+                    <CreditCard
+                      card={card}
+                      showDetails={revealedCardId === card.id}
+                    />
                   </div>
                 </div>
               ))}
