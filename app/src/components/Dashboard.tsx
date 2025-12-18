@@ -2,27 +2,21 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Icons } from "./ui/Icons";
 import { CreditCard } from "./CreditCard";
 import { ActionMenu } from "./ActionMenu";
-import { TransactionList } from "./TransactionList";
 import { NewCardModal } from "./NewCardModal";
-import { Card, Transaction } from "../../../types";
 import { cn } from "../../../utils";
 
 // Shadcn UI Imports
 import { Button } from "./ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "./ui/accordion";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { cardService } from "../services/api";
 import { AspireIcon } from "../utils/iconUtil";
+import { ContentSections } from "./ContentSections";
+import { Card, Transaction } from "../interfaces/common";
 
 export const Dashboard: React.FC = () => {
   const [cards, setCards] = useState<Card[]>([]);
   const [activeCardIndex, setActiveCardIndex] = useState(1);
-  const [showCardNumber, setShowCardNumber] = useState(false);
+  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -110,7 +104,6 @@ export const Dashboard: React.FC = () => {
 
     requestAnimationFrame(() => {
       scrollToCard(index);
-      setShowCardNumber(false); // optional UX reset
     });
   }, [cards.length]);
 
@@ -148,6 +141,7 @@ export const Dashboard: React.FC = () => {
 
     container.scrollTo({ left: scrollPos, behavior: "smooth" });
     setActiveCardIndex(index);
+    setRevealedCardId(null);
   };
 
   // --- Carousel Logic Start ---
@@ -180,6 +174,7 @@ export const Dashboard: React.FC = () => {
     });
 
     setActiveCardIndex(closestIndex);
+    setRevealedCardId(null);
 
     // Detect scroll end
     scrollTimeoutRef.current = window.setTimeout(() => {
@@ -191,6 +186,7 @@ export const Dashboard: React.FC = () => {
       });
     }, 120); // adjust if needed
   };
+
   //mobile
   const handleMobileScroll = () => {
     if (carouselMode !== "mobile") return;
@@ -221,6 +217,7 @@ export const Dashboard: React.FC = () => {
     });
 
     setActiveCardIndex(closestIndex);
+    setRevealedCardId(null);
 
     scrollTimeoutRef.current = window.setTimeout(() => {
       setIsCarouselScrolling(false);
@@ -330,56 +327,6 @@ export const Dashboard: React.FC = () => {
 
   // Mobile Sheet Positions
   const baseTop = isSheetOpen ? SHEET_OPEN_TOP : SHEET_CLOSED_TOP;
-
-  // Reusable Content Sections using Shadcn Accordion
-  const ContentSections = () => (
-    <Accordion
-      type="single"
-      collapsible
-      className="w-full space-y-4"
-      defaultValue="transactions"
-    >
-      <AccordionItem
-        value="card-details"
-        className="border border-gray-100 rounded-lg bg-white shadow-sm overflow-hidden px-0"
-      >
-        <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 hover:no-underline data-[state=open]:bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <Icons.Card
-              className="text-primary-blue"
-              size={20}
-              fill={"#23CEFD"}
-            />
-            <span className="text-primary-blue font-semibold">
-              Card details
-            </span>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="px-6 pb-4">
-          <div className="text-gray-500 text-sm py-2">
-            <p>Card ID: {currentCard?.id}</p>
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-
-      <AccordionItem
-        value="transactions"
-        className="border border-gray-100 rounded-lg bg-white shadow-sm overflow-hidden px-0"
-      >
-        <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 hover:no-underline data-[state=open]:bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <Icons.Transaction className="text-primary-blue" size={20} />
-            <span className="text-primary-blue font-semibold text-sm">
-              Recent transactions
-            </span>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="px-6 pb-4">
-          <TransactionList transactions={transactions} />
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-primary-blue md:bg-white flex flex-col gap-8 md:p-[60px] md:overflow-y-auto no-scrollbar">
@@ -505,7 +452,7 @@ export const Dashboard: React.FC = () => {
                 )}
                 onClick={() => scrollToCard(idx)}
               >
-                <CreditCard card={card} showDetails={showCardNumber} />
+                <CreditCard card={card} showDetails={revealedCardId === card.id} />
               </div>
             );
           })}
@@ -521,11 +468,11 @@ export const Dashboard: React.FC = () => {
             )}
           >
             <button
-              onClick={() => setShowCardNumber(!showCardNumber)}
+              onClick={() => setRevealedCardId(revealedCardId === currentCard?.id ? null : currentCard?.id ?? null)}
               className="flex h-full items-center gap-2 bg-white text-primary-green px-2 pb-3 rounded-t-md text-xs font-medium"
             >
               <Icons.Eye size={16} />
-              Show card number
+              {revealedCardId === currentCard?.id ? 'Hide card number' : 'Show card number'}
             </button>
           </div>
         )}
@@ -571,9 +518,16 @@ export const Dashboard: React.FC = () => {
           <div className="w-10 h-1 bg-gray-200 rounded-full"></div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-48 no-scrollbar bg-white">
+        <div
+          className="flex-1 overflow-y-auto px-6 pb-48 no-scrollbar bg-white"
+          style={{ overscrollBehavior: "contain" }}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           <ActionMenu className="mb-6 pt-0" />
-          <ContentSections />
+          <ContentSections
+            currentCard={currentCard}
+            transactions={transactions}
+          />
         </div>
       </div>
       {/* 
@@ -586,6 +540,7 @@ export const Dashboard: React.FC = () => {
       max-w-dvw 
       flex 
       lg:flex-row
+      lg:items-start
       md:flex-col
       md:justify-center
       md:items-center
@@ -623,15 +578,18 @@ export const Dashboard: React.FC = () => {
                   <div className="relative">
                     <div className="flex justify-end mb-4">
                       <button
-                        onClick={() => setShowCardNumber(!showCardNumber)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRevealedCardId(revealedCardId === card.id ? null : card.id);
+                        }}
                         className="flex items-center gap-2 text-primary-green text-xs font-bold"
                       >
                         <Icons.Eye size={14} />
-                        <span>Show card number</span>
+                        <span>{revealedCardId === card.id ? 'Hide card number' : 'Show card number'}</span>
                       </button>
                     </div>
 
-                    <CreditCard card={card} showDetails={showCardNumber} />
+                    <CreditCard card={card} showDetails={revealedCardId === card.id} />
                   </div>
                 </div>
               ))}
@@ -655,13 +613,16 @@ export const Dashboard: React.FC = () => {
 
             {/* ACTION MENU */}
             <div className="mt-6">
-              <ActionMenu className="bg-[#EDF3FF] rounded-2xl p-4" />
+              <ActionMenu className="bg-[#EDF3FF] rounded-2xl p-4 md:gap-4" />
             </div>
           </div>
 
           {/* RIGHT COLUMN — DETAILS */}
-          <div className="flex-1 min-w-0">
-            <ContentSections />
+          <div className="flex-1 min-w-0 md:w-full">
+            <ContentSections
+              currentCard={currentCard}
+              transactions={transactions}
+            />
           </div>
         </div>
       </div>
