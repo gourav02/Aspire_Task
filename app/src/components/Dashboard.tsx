@@ -37,8 +37,8 @@ export const Dashboard: React.FC = () => {
   );
 
   const SHEET_TOP_LIMIT = 0; // cannot go above viewport
-  const SHEET_CLOSED_TOP = window.innerHeight * 0.65;
-  const SHEET_OPEN_TOP = window.innerHeight * 0.1; // ~10%
+  const SHEET_CLOSED_TOP = window.innerHeight * 0.65; // 65% of the viewport height from the top
+  const SHEET_OPEN_TOP = window.innerHeight * 0.1; // 10% of the viewport height from the top
 
   const updateTabPosition = () => {
     if (carouselMode !== "mobile") return;
@@ -58,9 +58,8 @@ export const Dashboard: React.FC = () => {
     });
   };
 
-  // Initialize mobile carousel position when mode changes or cards load
+  // Initialize carousel position when mode changes, cards load, or new card is added
   useLayoutEffect(() => {
-    if (carouselMode !== "mobile") return;
     if (!cards.length) return;
 
     let raf1: number;
@@ -69,9 +68,17 @@ export const Dashboard: React.FC = () => {
     // Double RAF ensures DOM + refs are fully settled
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
-        scrollToCard(activeCardIndex);
-        updateTabPosition();
-        setShowTab(true);
+        // If a new card was just added, scroll to it
+        if (pendingScrollIndexRef.current !== null) {
+          const newIndex = pendingScrollIndexRef.current;
+          pendingScrollIndexRef.current = null;
+          scrollToCard(newIndex);
+        } else if (carouselMode === "mobile") {
+          // Otherwise, for mobile mode initialization, scroll to active card
+          scrollToCard(activeCardIndex);
+          updateTabPosition();
+          setShowTab(true);
+        }
       });
     });
 
@@ -80,29 +87,6 @@ export const Dashboard: React.FC = () => {
       cancelAnimationFrame(raf2);
     };
   }, [carouselMode, cards.length]);
-
-  // Scroll to newly added card
-  useLayoutEffect(() => {
-    if (pendingScrollIndexRef.current === null) return;
-
-    const index = pendingScrollIndexRef.current;
-    pendingScrollIndexRef.current = null;
-
-    let raf1: number;
-    let raf2: number;
-
-    // Double RAF ensures the new card DOM element is rendered (especially for mobile)
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        scrollToCard(index);
-      });
-    });
-
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [cards.length]);
 
   useEffect(() => {
     const loadedCards = cardService.getCards();
@@ -141,10 +125,20 @@ export const Dashboard: React.FC = () => {
     setRevealedCardId(null);
   };
 
-  // --- Carousel Logic Start ---
-  const handleScroll = () => {
-    if (carouselMode !== "desktop") return;
-    if (!carouselRef.current || pendingScrollIndexRef.current !== null) return;
+  // --- Carousel Scroll Handler (works for both mobile and desktop) ---
+  const handleCarouselScroll = () => {
+    // Skip if there's a pending programmatic scroll
+    if (pendingScrollIndexRef.current !== null) return;
+
+    // Get the correct container and card refs based on mode
+    const container =
+      carouselMode === "mobile"
+        ? mobileCarouselRef.current
+        : carouselRef.current;
+    const cardRefsArray =
+      carouselMode === "mobile" ? mobileCardRefs.current : cardRefs.current;
+
+    if (!container) return;
 
     setIsCarouselScrolling(true);
     setShowTab(false);
@@ -153,13 +147,12 @@ export const Dashboard: React.FC = () => {
       clearTimeout(scrollTimeoutRef.current);
     }
 
-    const container = carouselRef.current;
     const centerPos = container.scrollLeft + container.offsetWidth / 2;
 
     let closestIndex = 0;
     let minDistance = Infinity;
 
-    cardRefs.current.forEach((card, index) => {
+    cardRefsArray.forEach((card, index) => {
       if (!card) return;
       const cardCenter = card.offsetLeft + card.offsetWidth / 2;
       const dist = Math.abs(centerPos - cardCenter);
@@ -174,48 +167,6 @@ export const Dashboard: React.FC = () => {
     setRevealedCardId(null);
 
     // Detect scroll end
-    scrollTimeoutRef.current = window.setTimeout(() => {
-      setIsCarouselScrolling(false);
-
-      requestAnimationFrame(() => {
-        updateTabPosition();
-        setShowTab(true);
-      });
-    }, 120); // adjust if needed
-  };
-
-  //mobile
-  const handleMobileScroll = () => {
-    if (carouselMode !== "mobile") return;
-    if (!mobileCarouselRef.current) return;
-
-    setIsCarouselScrolling(true);
-    setShowTab(false);
-
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-
-    const container = mobileCarouselRef.current;
-    const centerPos = container.scrollLeft + container.offsetWidth / 2;
-
-    let closestIndex = 0;
-    let minDistance = Infinity;
-
-    mobileCardRefs.current.forEach((card, index) => {
-      if (!card) return;
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      const dist = Math.abs(centerPos - cardCenter);
-
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestIndex = index;
-      }
-    });
-
-    setActiveCardIndex(closestIndex);
-    setRevealedCardId(null);
-
     scrollTimeoutRef.current = window.setTimeout(() => {
       setIsCarouselScrolling(false);
 
@@ -374,7 +325,7 @@ export const Dashboard: React.FC = () => {
         {/* Carousel Container */}
         <div
           ref={mobileCarouselRef}
-          onScroll={handleMobileScroll}
+          onScroll={handleCarouselScroll}
           className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth gap-3 px-[10vw] no-scrollbar pb-6 w-full"
         >
           {cards.map((card, idx) => {
@@ -509,7 +460,7 @@ export const Dashboard: React.FC = () => {
             {/* DESKTOP CAROUSEL */}
             <div
               ref={carouselRef}
-              onScroll={handleScroll}
+              onScroll={handleCarouselScroll}
               className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar  w-full  max-w-full self-stretch"
             >
               {cards.map((card, idx) => (
