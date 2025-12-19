@@ -58,18 +58,7 @@ export const Dashboard: React.FC = () => {
     });
   };
 
-  useLayoutEffect(() => {
-    if (carouselMode !== "mobile") return;
-    if (!cards.length) return;
-
-    // wait for DOM + refs to settle
-    requestAnimationFrame(() => {
-      scrollToCard(activeCardIndex);
-      updateTabPosition();
-      setShowTab(true);
-    });
-  }, [carouselMode, cards.length]);
-
+  // Initialize mobile carousel position when mode changes or cards load
   useLayoutEffect(() => {
     if (carouselMode !== "mobile") return;
     if (!cards.length) return;
@@ -77,9 +66,9 @@ export const Dashboard: React.FC = () => {
     let raf1: number;
     let raf2: number;
 
+    // Double RAF ensures DOM + refs are fully settled
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
-        // mobile refs are guaranteed now
         scrollToCard(activeCardIndex);
         updateTabPosition();
         setShowTab(true);
@@ -92,15 +81,27 @@ export const Dashboard: React.FC = () => {
     };
   }, [carouselMode, cards.length]);
 
+  // Scroll to newly added card
   useLayoutEffect(() => {
     if (pendingScrollIndexRef.current === null) return;
 
     const index = pendingScrollIndexRef.current;
     pendingScrollIndexRef.current = null;
 
-    requestAnimationFrame(() => {
-      scrollToCard(index);
+    let raf1: number;
+    let raf2: number;
+
+    // Double RAF ensures the new card DOM element is rendered (especially for mobile)
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        scrollToCard(index);
+      });
     });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, [cards.length]);
 
   useEffect(() => {
