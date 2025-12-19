@@ -1,5 +1,5 @@
-import { Card, Transaction } from "@/types";
 import { generateRandomCardNumber, generateExpiryDate, generateRandomCVV } from "@/utils";
+import { Card, Transaction } from "../interfaces/common";
 
 
 const STORAGE_KEY_CARDS = 'aspire_cards';
@@ -11,6 +11,14 @@ const INITIAL_CARDS: Card[] = [
     cardNumber: '1234567890122020',
     expiryDate: '12/20',
     cvv: '123',
+    isFrozen: false,
+  },
+   {
+    id: '2',
+    name: 'Gourav Mukherjee',
+    cardNumber: '9876543210982021',
+    expiryDate: '05/25',
+    cvv: '456',
     isFrozen: false,
   }
 ];

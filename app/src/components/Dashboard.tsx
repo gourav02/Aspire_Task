@@ -228,15 +228,18 @@ export const Dashboard: React.FC = () => {
   const currentCard = cards[activeCardIndex];
 
   // Universal Pointer Handlers (Works for Mouse & Touch on Mobile)
+
+  //
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
 
     setIsDragging(true);
     startY.current = e.clientY;
     setDragOffset(0);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId); //continues receiving pointer events, even if the finger/mouse moves outside the handle
   };
 
+  //This runs continuously while dragging, updating the sheet position in real time.
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     e.preventDefault();
@@ -261,31 +264,51 @@ export const Dashboard: React.FC = () => {
     setDragOffset(diff);
   };
 
+  //This finalizes the drag and decides where the sheet should snap.
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     setIsDragging(false);
 
     try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
+      e.currentTarget.releasePointerCapture(e.pointerId); //Releases pointer control
     } catch (err) {
       // Ignore
     }
 
     const threshold = 100; // Pixels to drag to trigger snap
 
+    let shouldOpen = isSheetOpen;
+
     if (!isSheetOpen) {
       // Closed -> Dragging UP
       if (dragOffset < -threshold) {
-        setIsSheetOpen(true);
+        shouldOpen = true;
       }
     } else {
       // Open -> Dragging DOWN
       if (dragOffset > threshold) {
-        setIsSheetOpen(false);
+        shouldOpen = false;
       }
     }
 
-    setDragOffset(0);
+    if (shouldOpen !== isSheetOpen) {
+      // Calculate the offset needed to maintain visual position during state change
+      // When state changes, baseTop will jump, so we compensate with dragOffset
+      const currentVisualTop = baseTop + dragOffset;
+      const newBaseTop = shouldOpen ? SHEET_OPEN_TOP : SHEET_CLOSED_TOP;
+      const compensatingOffset = currentVisualTop - newBaseTop;
+
+      setDragOffset(compensatingOffset);
+      setIsSheetOpen(shouldOpen);
+
+      // After state updates and transition starts, animate dragOffset to 0
+      requestAnimationFrame(() => {
+        setDragOffset(0);
+      });
+    } else {
+      // No state change, just reset offset
+      setDragOffset(0);
+    }
   };
 
   useEffect(() => {
@@ -429,7 +452,7 @@ export const Dashboard: React.FC = () => {
           height: "100vh",
           transition: isDragging
             ? "none"
-            : "top 0.45s cubic-bezier(0.32, 0.72, 0, 1)",
+            : "top 0.45s cubic-bezier(0.32, 0.72, 0, 1), transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)",
           touchAction: "none",
           overscrollBehavior: "contain",
         }}
